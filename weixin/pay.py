@@ -35,14 +35,20 @@ class WeixinPayError(WeixinError):
 class WeixinPay(object):
     PAY_HOST = "https://api.mch.weixin.qq.com"
 
-    def __init__(self, app_id, mch_id, mch_key, notify_url, key=None, cert=None):
+    def __init__(self, app_id, mch_id, mch_key, notify_url, key=None, cert=None, timeout=None):
         self.app_id = app_id
         self.mch_id = mch_id
         self.mch_key = mch_key
         self.notify_url = notify_url
         self.key = key
         self.cert = cert
-        self.sess = requests.Session()
+        if timeout: 
+            self.sess = requests.Session( 
+                    transport_adapters={ 
+                        ('http://', 'https://'): HTTPAdapter(timeout=timeout) 
+                        })
+        else:
+            self.sess = requests.Session()
 
     @property
     def timestamp(self):
