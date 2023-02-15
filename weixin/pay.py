@@ -8,6 +8,7 @@ import string
 import random
 import hashlib
 import requests
+from requests.adapters import HTTPAdapter
 
 from .base import Map, WeixinError
 
@@ -25,6 +26,21 @@ __all__ = ("WeixinPayError", "WeixinPay")
 FAIL = "FAIL"
 SUCCESS = "SUCCESS"
 
+DEFAULT_TIMEOUT = 15 # seconds
+
+class TimeoutHTTPAdapter(HTTPAdapter):
+    def __init__(self, *args, **kwargs):
+        self.timeout = DEFAULT_TIMEOUT
+        if "timeout" in kwargs:
+            self.timeout = kwargs["timeout"]
+            del kwargs["timeout"]
+        super().__init__(*args, **kwargs)
+
+    def send(self, request, **kwargs):
+        timeout = kwargs.get("timeout")
+        if timeout is None:
+            kwargs["timeout"] = self.timeout
+        return super().send(request, **kwargs)
 
 class WeixinPayError(WeixinError):
 
@@ -43,10 +59,10 @@ class WeixinPay(object):
         self.key = key
         self.cert = cert
         if timeout: 
-            self.sess = requests.Session( 
-                    transport_adapters={ 
-                        ('http://', 'https://'): HTTPAdapter(timeout=timeout) 
-                        })
+            self.sess = requests.Session()
+            adapter = TimeoutHTTPAdapter(timeout=timeout)
+            self.sess.mount("https://", adapter)
+            self.sess.mount("http://", adapter)
         else:
             self.sess = requests.Session()
 
